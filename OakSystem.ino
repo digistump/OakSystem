@@ -2,7 +2,11 @@
 SYSTEM_MODE(SEMI_AUTOMATIC)
 
 #define OAK_SYSTEM_ROM_4F616B 82
+#include "ESP8266WiFi.h"
+#include "ESP8266WebServer.h"
 #include <Ticker.h>
+
+const char ok_response[] = "HTTP/1.1 200 OK \r\nContent-Type: text/html\r\nConnection: close\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\nContent-Length: ";
 
 Ticker LEDFlip;
 
@@ -23,7 +27,7 @@ void FlipLED(){
 
 void provisionKeys(){
   digitalWrite(1,HIGH);
-  if(!provisionKeys()){
+  if(!Particle.provisionKeys()){
     digitalWrite(1,LOW);
     LEDFlip.attach(2, FlipLED);
     while(1){
@@ -36,8 +40,8 @@ void provisionKeys(){
 void initVariant() {
     WiFi.disconnect();
     noInterrupts();
-    spi_flash_erase_sector(1020);
-    spi_flash_erase_sector(1021); 
+    Oak.flashEraseSector(1020);
+    Oak.flashEraseSector(1021); 
     interrupts();
     Particle.initialize(true);
 }
@@ -56,12 +60,22 @@ void setup(){
   sprintf(ssid_ap, "ACORN-%06x", ESP.getChipId());
   LEDFlip.attach(0.5, FlipLED);
 
-  if(!Particle.connect() || TODO WHEN TO FORCE AP){
+  if(!Particle.connect() || Oak.currentRom() == Oak.configRom()){ //TODO does this cover gpio?
     //if we rebooted to config on purpose or we can't connect then allow connection
     #ifdef DEBUG_SETUP
         Serial.println("START AP");
     #endif
     setupAccessPoint();
+  }
+  else{
+    //pump those events - we are in safe mode
+    
+    //send safe mode event
+    Particle.publish("oak/devices/stderr", "Safe Mode", 60, PRIVATE);
+    while(1){
+      //wait for an update or reset!
+      Particle.process();
+    }
   }
   #ifdef DEBUG_SETUP
       Serial.println("STARTED");
