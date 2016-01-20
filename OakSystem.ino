@@ -475,12 +475,8 @@ void displayConnectAp(uint8_t streamType) {
     sendTelnet(connectAp);
   }
 
-  //switch client and try to connect
-  ////TODO MAKE THIS PART OF CLOUD INIT?
-  WiFi.softAPdisconnect(false);
-  WiFi.mode(WIFI_STA);
-  //TODO CONNECT TO CLOUD OR JUST RESTART INTO USER? INTO CURRENT? PROBABLY USER - BUT WHAT IF USER IS HAVING ERROR, THEN IT SHOULD REBOOT TO HERE AND HAVE SETTINGS
-  
+  //reboot to user script so that we try to connect
+  Oak.rebootToUser();
 }
 
 void displayVersionPage() {
