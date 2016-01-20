@@ -1,4 +1,4 @@
-//#define DEBUG_SETUP
+#define DEBUG_SETUP
 SYSTEM_MODE(SEMI_AUTOMATIC)
 
 #define OAK_SYSTEM_ROM_4F616B 82
@@ -60,22 +60,21 @@ void setup(){
   sprintf(ssid_ap, "ACORN-%06x", ESP.getChipId());
   LEDFlip.attach(0.5, FlipLED);
 
-  if(!Particle.connect() || Oak.currentRom() == Oak.configRom()){ //TODO does this cover gpio?
+  if(!Particle.connect()){ //TODO does this cover gpio?
     //if we rebooted to config on purpose or we can't connect then allow connection
-    #ifdef DEBUG_SETUP
-        Serial.println("START AP");
-    #endif
-    setupAccessPoint();
+    setupAccessPoint(false);
+  }
+  else if(Oak.userRom() == Oak.configRom()){ //first time boot
+    setupAccessPoint(true);
+    Particle.autoConnect();
+    Particle.publish("oak/devices/stderr", "No user rom found", 60, PRIVATE);
+  }
+  MAKE SURE GPIO DOESNT CONNECT TO CLOUD JUST SHOWS WIFI CONFIG
+  else if(Oak.currentRom() == Oak.configRom()){ TODO SEE BOOTLOADER - CHECK FOR GPIO IN EARLY INT? - SET FLAG THAT WE WANT CONFIG BEFORE REBOOT? rebootToWiFiSetup?
+    setupAccessPoint(false);
   }
   else{
-    //pump those events - we are in safe mode
-    
-    //send safe mode event
-    Particle.publish("oak/devices/stderr", "Safe Mode", 60, PRIVATE);
-    while(1){
-      //wait for an update or reset!
-      Particle.process();
-    }
+    pumpEvents();
   }
   #ifdef DEBUG_SETUP
       Serial.println("STARTED");
@@ -87,7 +86,16 @@ void setup(){
       
 }
 
-
+void pumpEvents(){
+    //pump those events - we are in safe mode
+    
+    //send safe mode event
+    Particle.publish("oak/devices/stderr", "Safe Mode", 60, PRIVATE);
+    while(1){
+      //wait for an update or reset!
+      Particle.process();
+    }
+}
 
 void loop(){  
 
@@ -233,7 +241,10 @@ void loop(){
 }
 
 
-void setupAccessPoint(void) {
+void setupAccessPoint(bool leaveSTAOn) {
+  #ifdef DEBUG_SETUP
+        Serial.println("START AP");
+    #endif
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
   delay(100);
@@ -297,7 +308,11 @@ void setupAccessPoint(void) {
   JSONScan += "]}";
   //st += "</ol>";
   delay(100);
-  WiFi.mode(WIFI_AP);
+  if(leaveSTAOn)
+    WiFi.mode(WIFI_AP_STA);
+  else{
+    WiFi.mode(WIFI_AP);
+  }
   WiFi.softAPConfig(IPAddress(192,168,0,1), IPAddress(192,168,0,1), IPAddress(255,255,255,0));
   WiFi.softAP(ssid_ap);
 
