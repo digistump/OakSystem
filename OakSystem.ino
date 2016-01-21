@@ -1,7 +1,5 @@
-#define DEBUG_SETUP
 SYSTEM_MODE(SEMI_AUTOMATIC)
 
-#define OAK_SYSTEM_ROM_4F616B 82
 #include "ESP8266WiFi.h"
 #include "ESP8266WebServer.h"
 #include <Ticker.h>
@@ -60,20 +58,19 @@ void setup(){
   sprintf(ssid_ap, "ACORN-%06x", ESP.getChipId());
   LEDFlip.attach(0.5, FlipLED);
 
-  if(!Particle.connect()){ //TODO does this cover gpio?
-    //if we rebooted to config on purpose or we can't connect then allow connection
+  if(Oak.currentRom() == Oak.configRom()){ //this means we are here on purpose, therefore we want wifi setup only
     setupAccessPoint(false);
   }
-  else if(Oak.userRom() == Oak.configRom()){ //first time boot
+  else if(!Particle.connect()){
+    //if we can't connect then go to wifi config
+    setupAccessPoint(false);
+  }
+  else if(Oak.userRom() == Oak.configRom()){ //first time boot, no user images yet
     setupAccessPoint(true);
     Particle.autoConnect();
     Particle.publish("oak/devices/stderr", "No user rom found", 60, PRIVATE);
   }
-  MAKE SURE GPIO DOESNT CONNECT TO CLOUD JUST SHOWS WIFI CONFIG
-  else if(Oak.currentRom() == Oak.configRom()){ TODO SEE BOOTLOADER - CHECK FOR GPIO IN EARLY INT? - SET FLAG THAT WE WANT CONFIG BEFORE REBOOT? rebootToWiFiSetup?
-    setupAccessPoint(false);
-  }
-  else{
+  else{ //else we're here do to a failure so we just want to go into safe mode
     pumpEvents();
   }
   #ifdef DEBUG_SETUP
@@ -88,6 +85,9 @@ void setup(){
 
 void pumpEvents(){
     //pump those events - we are in safe mode
+    #ifdef DEBUG_SETUP
+      Serial.println("SAFE MODE");
+    #endif
     
     //send safe mode event
     Particle.publish("oak/devices/stderr", "Safe Mode", 60, PRIVATE);
