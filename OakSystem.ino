@@ -41,41 +41,66 @@ void initVariant() {
     Oak.flashEraseSector(1020);
     Oak.flashEraseSector(1021); 
     interrupts();
-    Particle.initialize(true);
 }
 
 
 void setup(){
+  Particle.initialize(true);
   Serial.begin(115200);
 
   //Serial.setDebugOutput(true);
   #ifdef DEBUG_SETUP
       Serial.println("START");
+      Serial.println(Oak.currentRom());
+      Serial.println(Oak.userRom());
+      Serial.println(Oak.configRom());
+      Serial.println(Oak.updateRom());
   #endif
 
   pinMode(1,OUTPUT);
   provisionKeys();
   sprintf(ssid_ap, "ACORN-%06x", ESP.getChipId());
   LEDFlip.attach(0.5, FlipLED);
+  scanNetworks();
 
-  if(Oak.currentRom() == Oak.configRom()){ //this means we are here on purpose, therefore we want wifi setup only
+  if(Oak.currentRom() == Oak.configRom() && Oak.userRom() != Oak.configRom()){ //this means we are here on purpose, therefore we want wifi setup only
+      #ifdef DEBUG_SETUP
+      Serial.println("WIFI CONFIG");
+  #endif
     setupAccessPoint(false);
   }
-  else if(!Particle.connect()){
-    //if we can't connect then go to wifi config
-    setupAccessPoint(false);
-  }
-  else if(Oak.userRom() == Oak.configRom()){ //first time boot, no user images yet
-    setupAccessPoint(true);
-    Particle.autoConnect();
-    Particle.publish("oak/devices/stderr", "No user rom found", 60, PRIVATE);
-  }
-  else{ //else we're here do to a failure so we just want to go into safe mode
-    pumpEvents();
+  else 
+  {
+    bool wifiFailed = true;
+    if(Oak.connect()){
+      if(Oak.waitForConnection()){
+        wifiFailed = false;
+      }
+    }
+    if(wifiFailed){
+      //if we can't connect then go to wifi config
+      #ifdef DEBUG_SETUP
+        Serial.println("NO CONNECT");
+    #endif
+      setupAccessPoint(false);
+    }
+    else if(Oak.userRom() == Oak.configRom()){ //first time boot, no user images yet
+        #ifdef DEBUG_SETUP
+        Serial.println("FIRST BOOT");
+    #endif
+      setupAccessPoint(true);
+      Particle.connect();
+      Particle.publish("oak/devices/stderr", "No user rom found", 60, PRIVATE);
+    }
+    else{ //else we're here do to a failure so we just want to go into safe mode
+      pumpEvents();
+    }
   }
   #ifdef DEBUG_SETUP
       Serial.println("STARTED");
   #endif
+
+
 
   #ifdef DEBUG_SETUP
       Serial.println("GOTO LOOP");
@@ -97,11 +122,14 @@ void pumpEvents(){
     }
 }
 
-void loop(){  
-
+void loop(){
+Particle.process();  
+   #ifdef DEBUG_SETUP
+      Serial.println("LOOP");
+    #endif
   server.handleClient();
   yield();
-  Particle.process();
+  
   telnetClient = telnet.available();
   if (telnetClient) {
 
@@ -240,11 +268,7 @@ void loop(){
 
 }
 
-
-void setupAccessPoint(bool leaveSTAOn) {
-  #ifdef DEBUG_SETUP
-        Serial.println("START AP");
-    #endif
+void scanNetworks(){
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
   delay(100);
@@ -308,6 +332,14 @@ void setupAccessPoint(bool leaveSTAOn) {
   JSONScan += "]}";
   //st += "</ol>";
   delay(100);
+}
+
+
+void setupAccessPoint(bool leaveSTAOn) {
+  #ifdef DEBUG_SETUP
+        Serial.println("START AP");
+    #endif
+  
   if(leaveSTAOn)
     WiFi.mode(WIFI_AP_STA);
   else{
