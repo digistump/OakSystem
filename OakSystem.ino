@@ -63,7 +63,11 @@ void setup(){
   LEDFlip.attach(0.5, FlipLED);
   scanNetworks();
 
-  if(Oak.currentRom() == Oak.configRom() && Oak.userRom() != Oak.configRom()){ //this means we are here on purpose, therefore we want wifi setup only
+  bool recoverMode = false;
+  if(Oak.bootReason() == 'G' || Oak.checkRomImage(Oak.currentRom()) == false || Oak.checkRomImage(Oak.userRom()) == false || Oak.otaReboot() == 1)
+    recoverMode == true;
+
+  if(Oak.currentRom() == Oak.configRom() && Oak.userRom() != Oak.configRom() && recoverMode == false){ //this means we are here on purpose, therefore we want wifi setup only
       #ifdef DEBUG_SETUP
       Serial.println("WIFI CONFIG");
   #endif
@@ -84,7 +88,7 @@ void setup(){
     #endif
       setupAccessPoint(false);
     }
-    else if(Oak.userRom() == Oak.configRom()){ //first time boot, no user images yet
+    else if(Oak.userRom() == Oak.configRom() || recoverMode == true){ //first time boot, no user images yet
         #ifdef DEBUG_SETUP
         Serial.println("FIRST BOOT");
     #endif
@@ -187,8 +191,12 @@ Particle.process();
           displayHello(false); 
         else if(strcmp(command,"info") == 0)
           displayInfo(false); 
+        else if(strcmp(command,"particle") == 0)
+          displayParticle(false); 
         else if(strcmp(command,"system-version") == 0)
           displaySystemVersion(false); 
+        else if(strcmp(command,"system-update") == 0)
+          displaySystemUpdate(false); 
         
         //else if(strcmp(command,"provision-keys") == 0)
         //  displayProvisionKeys(false,request);    
@@ -257,8 +265,12 @@ Particle.process();
           displayTest();  
         else if(strcmp(command,"info") == 0)
           displayInfo(2);
+        else if(strcmp(command,"particle") == 0)
+          displayParticle(2); 
         else if(strcmp(command,"system-version") == 0)
           displaySystemVersion(2);
+        else if(strcmp(command,"system-update") == 0)
+          displaySystemUpdate(2);
         else{
           while(Serial.read() != -1);
           return;
@@ -370,6 +382,8 @@ void setupAccessPoint(bool leaveSTAOn) {
   server.on("/set", displaySetPage);
   server.on("/info", displayInfoPage);
   server.on("/system-version", displaySystemVersionPage);
+  server.on("/particle", displayParticlePage);
+  server.on("/system-update", displaySystemUpdatePage);
   //server.on("/provision-keys", displayProvisionKeysPage);
   server.onNotFound(handleNotFound);
 }
@@ -398,8 +412,12 @@ void displayConfigureAp(uint8_t streamType,String input) {
   }
 
 }
-
-
+void displayParticlePage() {
+  displayParticle(true);
+}
+void displaySystemUpdatePage() {
+  displaySystemUpdate(true);
+}
 void displaySystemVersionPage() {
   displaySystemVersion(true);
 }
@@ -452,7 +470,38 @@ void displaySystemVersion(uint8_t streamType) {
 
 }
 
+void displayParticle(uint8_t streamType) {
+  String particle = "";
+  if(Particle.connected())
+    particle = "Connected";
+  else
+    particle = "Not connected";
 
+  if(streamType ==1){
+    sendHTML(particle);
+  }
+  else if(streamType == 2){
+    sendSerial(particle);
+  }
+  else{
+    sendTelnet(particle);
+  }
+
+}
+void displaySystemUpdate(uint8_t streamType) {
+  String update_string = "{\"r\":0}";
+  if(streamType ==1){
+    sendHTML(update_string);
+  }
+  else if(streamType == 2){
+    sendSerial(update_string);
+  }
+  else{
+    sendTelnet(update_string);
+  }
+  Oak.rebootToFallbackUpdater();
+
+}
 void displayHello(uint8_t streamType) {
   String hello = "Soft AP Setup";
   if(streamType ==1){
