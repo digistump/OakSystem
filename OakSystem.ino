@@ -18,20 +18,26 @@ WiFiClient telnetClient;
 
 String JSONScan;
 
+uint8_t LED_count = 0;
 void FlipLED(){
    LEDState = !LEDState;
    digitalWrite(1, LEDState);
+   if(LED_count == 0){
+    LEDFlip.detach();
+    LEDFlip.attach(0.1,FlipLED)
+   }
+   else if(LED_count == 5){
+    LEDFlip.detach();
+    LEDFlip.attach(0.5,FlipLED);
+    LED_count = 0;
+    return;
+   }
+   LED_count++;
 }
 
 void provisionKeys(){
   digitalWrite(1,HIGH);
-  if(!Particle.provisionKeys()){
-    digitalWrite(1,LOW);
-    LEDFlip.attach(2, FlipLED);
-    while(1){
-      yield();
-    }
-  }
+  Particle.provisionKeys();
   digitalWrite(1,LOW);
 }
 
