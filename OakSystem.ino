@@ -24,9 +24,9 @@ void FlipLED(){
    digitalWrite(1, LEDState);
    if(LED_count == 0){
     LEDFlip.detach();
-    LEDFlip.attach(0.1,FlipLED)
+    LEDFlip.attach(0.1,FlipLED);
    }
-   else if(LED_count == 5){
+   else if(LED_count == (OAK_SYSTEM_VERSION_INTEGER*2)-1){
     LEDFlip.detach();
     LEDFlip.attach(0.5,FlipLED);
     LED_count = 0;
@@ -289,7 +289,7 @@ Particle.process();
 void scanNetworks(){
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
-  delay(100);
+  internal_delay(100);
   int n = WiFi.scanNetworks();
   
   //HTMLScan = "";
@@ -349,7 +349,7 @@ void scanNetworks(){
   }
   JSONScan += "]}";
   //st += "</ol>";
-  delay(100);
+  internal_delay(100);
 }
 
 
