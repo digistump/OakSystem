@@ -26,7 +26,7 @@ void FlipLED(){
     LEDFlip.detach();
     LEDFlip.attach(0.1,FlipLED);
    }
-   else if(LED_count == (OAK_SYSTEM_VERSION_INTEGER*2)-1){
+   else if(LED_count == 5){
     LEDFlip.detach();
     LEDFlip.attach(0.5,FlipLED);
     LED_count = 0;
