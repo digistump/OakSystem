@@ -287,7 +287,7 @@ Particle.process();
 }
 
 void scanNetworks(){
-  WiFi.mode(WIFI_STA);
+  WiFi.mode_internal(WIFI_STA);
   WiFi.disconnect();
   internal_delay(100);
   int n = WiFi.scanNetworks();
@@ -359,9 +359,9 @@ void setupAccessPoint(bool leaveSTAOn) {
     #endif
   
   if(leaveSTAOn)
-    WiFi.mode(WIFI_AP_STA);
+    WiFi.mode_internal(WIFI_AP_STA);
   else{
-    WiFi.mode(WIFI_AP);
+    WiFi.mode_internal(WIFI_AP);
   }
   WiFi.softAPConfig(IPAddress(192,168,0,1), IPAddress(192,168,0,1), IPAddress(255,255,255,0));
   WiFi.softAP(ssid_ap);
@@ -530,6 +530,7 @@ void displayInfoPage() {
 
 void displayPublicKeyPage() {
   displayPublicKey(true);
+  Particle.disconnect();
 }
 
 String publicKeyResponse(){
