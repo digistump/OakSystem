@@ -69,43 +69,26 @@ void setup(){
   LEDFlip.attach(0.5, FlipLED);
   scanNetworks();
 
-  bool recoverMode = false;
-  if(Oak.bootReason() == 'G' || Oak.checkRomImage(Oak.currentRom()) == false || Oak.checkRomImage(Oak.userRom()) == false || Oak.otaReboot() == 1)
-    recoverMode == true;
 
-  if(Oak.currentRom() == Oak.configRom() && Oak.userRom() != Oak.configRom() && recoverMode == false){ //this means we are here on purpose, therefore we want wifi setup only
-      #ifdef DEBUG_SETUP
-      Serial.println("WIFI CONFIG");
-  #endif
-    setupAccessPoint(false);
-  }
-  else 
-  {
     bool wifiFailed = true;
     if(Oak.connect()){
       if(Oak.waitForConnection()){
         wifiFailed = false;
       }
     }
-    if(wifiFailed){
-      //if we can't connect then go to wifi config
-      #ifdef DEBUG_SETUP
-        Serial.println("NO CONNECT");
-    #endif
-      setupAccessPoint(false);
+
+    setupAccessPoint(false);
+
+    if(!wifiFailed){
+      //if we can connect then try to connect to Particle
+      if(Particle.connect()){
+        Particle.publish("oak/devices/stderr", "Config Mode", 60, PRIVATE);
+        if(Oak.userRom() == Oak.configRom() || Oak.checkRomImage(Oak.currentRom()) == false || Oak.checkRomImage(Oak.userRom()) == false)
+          Particle.publish("oak/devices/stderr", "No user rom found", 60, PRIVATE);
+      }
+      
     }
-    else if(Oak.userRom() == Oak.configRom() || recoverMode == true){ //first time boot, no user images yet
-        #ifdef DEBUG_SETUP
-        Serial.println("FIRST BOOT");
-    #endif
-      setupAccessPoint(true);
-      Particle.connect();
-      Particle.publish("oak/devices/stderr", "No user rom found", 60, PRIVATE);
-    }
-    else{ //else we're here do to a failure so we just want to go into safe mode
-      pumpEvents();
-    }
-  }
+
   #ifdef DEBUG_SETUP
       Serial.println("STARTED");
   #endif
@@ -118,19 +101,7 @@ void setup(){
       
 }
 
-void pumpEvents(){
-    //pump those events - we are in safe mode
-    #ifdef DEBUG_SETUP
-      Serial.println("SAFE MODE");
-    #endif
-    
-    //send safe mode event
-    Particle.publish("oak/devices/stderr", "Safe Mode", 60, PRIVATE);
-    while(1){
-      //wait for an update or reset!
-      Particle.process();
-    }
-}
+
 
 void loop(){
 Particle.process();  
