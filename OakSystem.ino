@@ -68,26 +68,46 @@ void setup(){
   sprintf(ssid_ap, "ACORN-%06x", ESP.getChipId());
   LEDFlip.attach(0.5, FlipLED);
   scanNetworks();
-
+bool leaveSTAOn = false;
 
     bool wifiFailed = true;
     if(Oak.connect()){
+        #ifdef DEBUG_SETUP
+      Serial.println("WIFI CONNECT");
+  #endif
       if(Oak.waitForConnection()){
         wifiFailed = false;
+          #ifdef DEBUG_SETUP
+      Serial.println("WIFI CONNECTED");
+  #endif
       }
     }
 
-    setupAccessPoint(false);
 
     if(!wifiFailed){
+        #ifdef DEBUG_SETUP
+      Serial.println("PARTICLE CONNECT");
+  #endif
       //if we can connect then try to connect to Particle
       if(Particle.connect()){
+        leaveSTAOn = true;
         Particle.publish("oak/devices/stderr", "Config Mode", 60, PRIVATE);
         if(Oak.userRom() == Oak.configRom() || Oak.checkRomImage(Oak.currentRom()) == false || Oak.checkRomImage(Oak.userRom()) == false)
           Particle.publish("oak/devices/stderr", "No user rom found", 60, PRIVATE);
       }
+      else{
+        Particle.disconnect();
+          #ifdef DEBUG_SETUP
+      Serial.println("PARTICLE DISCONNECT");
+  #endif
+      }
       
     }
+
+      #ifdef DEBUG_SETUP
+      Serial.println("AP ONLINE");
+  #endif
+    setupAccessPoint(leaveSTAOn);
 
   #ifdef DEBUG_SETUP
       Serial.println("STARTED");
@@ -103,8 +123,7 @@ void setup(){
 
 
 
-void loop(){
-Particle.process();  
+void loop(){ 
    #ifdef DEBUG_SETUP
       Serial.println("LOOP");
     #endif
