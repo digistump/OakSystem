@@ -9,7 +9,7 @@ const char ok_response[] = "HTTP/1.1 200 OK \r\nContent-Type: text/html\r\nConne
 Ticker LEDFlip;
 
 uint8_t LEDState = 0;
-char ssid_ap[12]; //AcornFFFFFF
+char ssid_ap[13]; //ACORN-FFFFFF
 
 //esp code
 ESP8266WebServer server(80);
