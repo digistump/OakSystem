@@ -91,9 +91,9 @@ bool leaveSTAOn = false;
       //if we can connect then try to connect to Particle
       if(Particle.connect()){
         leaveSTAOn = true;
-        Particle.publish("oak/devices/stderr", "Config Mode", 60, PRIVATE);
+        Particle.publish("oak/device/stderr", "Config Mode", 60, PRIVATE);
         if(Oak.userRom() == Oak.configRom() || Oak.checkRomImage(Oak.currentRom()) == false || Oak.checkRomImage(Oak.userRom()) == false)
-          Particle.publish("oak/devices/stderr", "No user rom found", 60, PRIVATE);
+          Particle.publish("oak/device/stderr", "No user rom found", 60, PRIVATE);
       }
       else{
         Particle.disconnect();
